@@ -41,7 +41,13 @@ import (
 	"unsafe"
 )
 
+var ffMac net.HardwareAddr
+
 var _ ItemStruct = (*ItemEth)(nil)
+
+func init() {
+	ffMac, _ = net.ParseMAC("ff:ff:ff:ff:ff:ff")
+}
 
 // ItemEth matches an Ethernet header.
 //
@@ -89,6 +95,7 @@ func (item *ItemEth) Reload() {
 
 	beU16(item.EtherType, unsafe.Pointer(&hdr.ether_type))
 
+	runtime.SetFinalizer(item, nil)
 	runtime.SetFinalizer(item, (*ItemEth).free)
 }
 

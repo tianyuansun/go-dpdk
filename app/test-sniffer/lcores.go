@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"log"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/yerden/go-dpdk/eal"
 	"github.com/yerden/go-dpdk/ethdev"
+	"github.com/yerden/go-dpdk/packet"
+	"github.com/yerden/go-dpdk/types"
 	"github.com/yerden/go-dpdk/util"
 )
 
@@ -17,8 +20,9 @@ var dryRun = flag.Bool("dryRun", false, "If true traffic will not be processed")
 
 // PortQueue describes port and rx queue id.
 type PortQueue struct {
-	Pid ethdev.Port
-	Qid uint16
+	Pid   ethdev.Port
+	RxQid uint16
+	TxQid uint16
 }
 
 // dissect all given lcores and store them into map hashed by affine
@@ -91,7 +95,7 @@ func distributeQueuesPort(pid ethdev.Port, lcoreMap map[uint][]uint, table map[u
 		lcore, lcores = lcores[0], lcores[1:]
 		acquired = append(acquired, lcore)
 		lcoreMap[uint(socket)] = lcores
-		table[lcore] = PortQueue{Pid: pid, Qid: i}
+		table[lcore] = PortQueue{Pid: pid, RxQid: i}
 	}
 
 	fmt.Printf("pid=%d runs on socket=%d, lcores=%v\n", pid, socket, util.LcoresList(acquired))
@@ -108,24 +112,79 @@ func LcoreFunc(pq PortQueue, qcr *QueueCounterReporter) func(*eal.LcoreCtx) {
 		}
 		// eal
 		pid := pq.Pid
-		qid := pq.Qid
-		qc := qcr.Register(pid, qid)
+		rxQid := pq.RxQid
+		qc := qcr.Register(pid, rxQid)
 
-		src := util.NewEthdevMbufArray(pid, qid, int(eal.SocketID()), uint16(*burstSize))
+		src := util.NewEthdevMbufArray(pid, rxQid, int(eal.SocketID()), uint16(*burstSize))
 		defer src.Free()
 
 		buf := src.Buffer()
 
-		log.Printf("processing pid=%d, qid=%d, lcore=%d\n", pid, qid, eal.LcoreID())
-		for {
-			n := src.Recharge()
+		txBuf := ethdev.NewTxBuffer(128)
 
-			for i := 0; i < n; i++ {
-				data := buf[i].Data()
+		log.Printf("processing pid=%d, qid=%d, lcore=%d\n", pid, rxQid, eal.LcoreID())
+		for {
+			n := pid.TxBufferFlush(rxQid, txBuf)
+			if n > 0 && *printMetadata {
+				log.Printf("Sent %d packets\n", n)
+			}
+			n = pid.RxBurst(rxQid, buf, uint16(*burstSize))
+			if n > 0 && *printMetadata {
+				log.Printf("Recv %d packets\n", n)
+			}
+
+			for i := uint16(0); i < n; i++ {
+				pkt := packet.Packet{
+					CMbuf: buf[i],
+				}
+				pkt.ParseL2()
+				pkt.ParseL3()
+				pkt.ParseL4ForIPv4()
+				pkt.ParseData()
 
 				if *printMetadata {
-					fmt.Printf("packet: %d bytes\n", len(data))
+					pkt.ParseL2()
+					pkt.ParseL3()
+					pkt.ParseL4ForIPv4()
+					pkt.ParseData()
+					fmt.Printf("rx packet:\nether %s\nipv4 %s\nicmp: %s\n",
+						pkt.GetEther().String(),
+						pkt.GetIPv4().String(),
+						pkt.GetICMPForIPv4().String(),
+					)
 				}
+				tmpMac := pkt.GetEther().SAddr
+				pkt.GetEther().SAddr = pkt.GetEther().DAddr
+				pkt.GetEther().DAddr = tmpMac
+				ipv4 := pkt.GetIPv4()
+				tmpIP := pkt.GetIPv4().SrcAddr
+				pkt.GetIPv4().SrcAddr = pkt.GetIPv4().DstAddr
+				pkt.GetIPv4().DstAddr = tmpIP
+				if ipv4.NextProtoID == types.ICMPNumber {
+					icmp := pkt.GetICMPForIPv4()
+					icmp.Type = types.ICMPTypeEchoResponse
+					icmp.Cksum = packet.SwapBytesUint16(packet.CalculateIPv4ICMPChecksum(ipv4, icmp, pkt.Data))
+				} else if ipv4.NextProtoID == types.UDPNumber {
+					tmpPort := pkt.GetUDPForIPv4().SrcPort
+					pkt.GetUDPForIPv4().SrcPort = pkt.GetUDPForIPv4().DstPort
+					pkt.GetUDPForIPv4().DstPort = tmpPort
+				}
+				ipCsum := packet.CalculateIPv4Checksum(ipv4)
+				pkt.GetIPv4().HdrChecksum = packet.SwapBytesUint16(ipCsum)
+
+				if *printMetadata {
+					pkt.ParseL2()
+					pkt.ParseL3()
+					pkt.ParseL4ForIPv4()
+					pkt.ParseData()
+					fmt.Printf("tx packet:\nether %s\nipv4 %s\nudp: %s\n",
+						pkt.GetEther().String(),
+						pkt.GetIPv4().String(),
+						pkt.GetICMPForIPv4().String(),
+					)
+					fmt.Printf("raw packet is %s\n", hex.EncodeToString(pkt.CMbuf.Data()))
+				}
+				pid.TxBuffer(rxQid, txBuf, pkt.CMbuf)
 			}
 
 			qc.Incr(buf[:n])

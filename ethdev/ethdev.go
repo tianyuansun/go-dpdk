@@ -7,6 +7,8 @@ package ethdev
 
 /*
 #include <stdlib.h>
+#include <stdint.h>
+#include <stdio.h>              // snprintf
 #include <net/if.h>
 
 #include <rte_config.h>
@@ -107,6 +109,40 @@ static int go_rte_eth_link_get_nowait(uint16_t port_id, struct go_rte_eth_link *
 	return rc;
 }
 
+static int setup_hairpin_queues(uint16_t pi, uint16_t nb_rxq, uint16_t nb_txq, uint16_t nb_hpq, uint16_t nb_rxd, uint16_t nb_txd) {
+    uint16_t qi = 0;
+    int i = 0;
+    int diag = 0;
+    struct rte_eth_hairpin_conf hairpin_conf = {
+            .peer_count = 1,
+    };
+
+    for (qi = nb_rxq, i = 0; qi < nb_hpq + nb_rxq; qi++, i++) {
+        hairpin_conf.peers[0].port = pi;
+        hairpin_conf.peers[0].queue = i + nb_txq;
+        diag = rte_eth_rx_hairpin_queue_setup(pi, qi, nb_rxd, &hairpin_conf);
+        if (diag == 0) {
+            continue;
+        }
+
+        fprintf(stderr, "Fail to configure port %d hairpin queues\n", pi);
+        return -1;
+    }
+
+    for (qi = nb_txq, i = 0; qi < nb_hpq + nb_txq; qi++, i++) {
+        hairpin_conf.peers[0].port = pi;
+        hairpin_conf.peers[0].queue = i + nb_rxq;
+        diag = rte_eth_tx_hairpin_queue_setup(pi, qi, nb_txd, &hairpin_conf);
+        if (diag == 0) {
+            continue;
+        }
+
+        fprintf(stderr, "Fail to configure port %d hairpin queues\n", pi);
+        return -1;
+    }
+    return 0;
+}
+
 */
 import "C"
 
@@ -131,6 +167,22 @@ const (
 	FcFull uint32 = C.RTE_ETH_FC_FULL
 )
 
+// This is rss
+const (
+	ETH_RSS_IPV4               uint64 = 1 << 2
+	ETH_RSS_FRAG_IPV4          uint64 = 1 << 3
+	ETH_RSS_NONFRAG_IPV4_TCP   uint64 = 1 << 4
+	ETH_RSS_NONFRAG_IPV4_UDP   uint64 = 1 << 5
+	ETH_RSS_NONFRAG_IPV4_SCTP  uint64 = 1 << 6
+	ETH_RSS_NONFRAG_IPV4_OTHER uint64 = 1 << 7
+	ETH_RSS_IP                 uint64 = (ETH_RSS_IPV4 | ETH_RSS_FRAG_IPV4 | ETH_RSS_NONFRAG_IPV4_TCP | ETH_RSS_NONFRAG_IPV4_UDP | ETH_RSS_NONFRAG_IPV4_SCTP | ETH_RSS_NONFRAG_IPV4_OTHER)
+)
+
+// This is rss mq
+const (
+	ETH_MQ_RX_RSS uint = 1 << 0
+)
+
 // Option represents device option which is then used by
 // DevConfigure to setup Ethernet device.
 type Option struct {
@@ -139,9 +191,10 @@ type Option struct {
 
 // configuration options for RX/TX queue
 type qConf struct {
-	socket C.int
-	rx     C.struct_rte_eth_rxconf
-	tx     C.struct_rte_eth_txconf
+	socket  C.int
+	rx      C.struct_rte_eth_rxconf
+	tx      C.struct_rte_eth_txconf
+	hairpin C.struct_rte_eth_hairpin_conf
 }
 
 // QueueOption represents an option which is used to setup RX/TX queue on
@@ -675,6 +728,19 @@ func (pid Port) TxqSetup(qid, nDesc uint16, opts ...QueueOption) error {
 
 	return errget(C.rte_eth_tx_queue_setup(C.ushort(pid), C.ushort(qid),
 		C.ushort(nDesc), C.uint(conf.socket), &conf.tx))
+}
+
+func (pid Port) HairpinQueueSetup(nrxq, ntxq, nhpq, nrxd, ntxd uint16) error {
+	return errget(
+		C.setup_hairpin_queues(
+			C.ushort(pid),
+			C.ushort(nrxq),
+			C.ushort(ntxq),
+			C.ushort(nhpq),
+			C.ushort(nrxd),
+			C.ushort(ntxd),
+		),
+	)
 }
 
 // Reset a Ethernet device and keep its port id.

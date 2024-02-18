@@ -1,10 +1,8 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
-	"syscall"
 
 	"github.com/yerden/go-dpdk/ethdev"
 	"github.com/yerden/go-dpdk/util"
@@ -23,8 +21,10 @@ func (f EthdevCallbackFunc) EthdevCall(pid ethdev.Port) error {
 
 // EthdevConfig specifies information on how to configure ethdev.Port.
 type EthdevConfig struct {
-	Options  []ethdev.Option
-	RxQueues uint16
+	Options       []ethdev.Option
+	RxQueues      uint16
+	TxQueues      uint16
+	HairpinQueues uint16
 
 	// Hooks to call after configuration
 	OnConfig []EthdevCallback
@@ -32,7 +32,9 @@ type EthdevConfig struct {
 	// RX queue config
 	Pooler        RxqMempooler
 	RxDescriptors uint16
+	TxDescriptors uint16
 	RxOptions     []ethdev.QueueOption
+	TxOptions     []ethdev.QueueOption
 
 	// Flow Control Mode
 	FcMode uint32
@@ -59,7 +61,7 @@ func (conf *EthdevConfig) Configure(pid ethdev.Port) error {
 		fmt.Printf("port %d doesn't support LSC interrupt\n", pid)
 	}
 
-	if err := pid.DevConfigure(conf.RxQueues, 0, opts...); err != nil {
+	if err := pid.DevConfigure(conf.RxQueues+conf.HairpinQueues, conf.TxQueues+conf.HairpinQueues, opts...); err != nil {
 		return err
 	}
 
@@ -68,7 +70,7 @@ func (conf *EthdevConfig) Configure(pid ethdev.Port) error {
 	}
 
 	for qid := uint16(0); qid < conf.RxQueues; qid++ {
-		//fmt.Printf("configuring rxq: %d@%d\n", pid, qid)
+		fmt.Printf("configuring rxq: %d@%d\n", pid, qid)
 		mp, err := conf.Pooler.GetRxMempool(pid, qid)
 		if err != nil {
 			return err
@@ -78,18 +80,29 @@ func (conf *EthdevConfig) Configure(pid ethdev.Port) error {
 		}
 	}
 
-	var fc ethdev.FcConf
-
-	if err := pid.FlowCtrlGet(&fc); err == nil {
-		fc.SetMode(conf.FcMode)
-		if err := pid.FlowCtrlSet(&fc); err != nil {
-			return util.ErrWrapf(err, "FlowCtrlSet")
+	for qid := uint16(0); qid < conf.TxQueues; qid++ {
+		fmt.Printf("configuring txq: %d@%d\n", pid, qid)
+		if err := pid.TxqSetup(qid, conf.TxDescriptors, conf.TxOptions...); err != nil {
+			return err
 		}
-
-		log.Printf("pid=%d: Flow Control set to %d", pid, conf.FcMode)
-	} else if !errors.Is(err, syscall.ENOTSUP) {
-		return util.ErrWrapf(err, "FlowCtrlGet")
 	}
+
+	if conf.HairpinQueues > 0 {
+		pid.HairpinQueueSetup(conf.RxQueues, conf.TxQueues, conf.HairpinQueues, conf.RxDescriptors, conf.TxDescriptors)
+	}
+
+	// var fc ethdev.FcConf
+
+	// if err := pid.FlowCtrlGet(&fc); err == nil {
+	// 	fc.SetMode(conf.FcMode)
+	// 	if err := pid.FlowCtrlSet(&fc); err != nil {
+	// 		return util.ErrWrapf(err, "FlowCtrlSet")
+	// 	}
+
+	// 	log.Printf("pid=%d: Flow Control set to %d", pid, conf.FcMode)
+	// } else if !errors.Is(err, syscall.ENOTSUP) {
+	// 	return util.ErrWrapf(err, "FlowCtrlGet")
+	// }
 
 	for i := range conf.OnConfig {
 		if err := conf.OnConfig[i].EthdevCall(pid); err != nil {
@@ -106,6 +119,11 @@ func printPortConfig(pid ethdev.Port) error {
 		return err
 	}
 
-	log.Printf("port %d: nrxq=%d\n", pid, info.NbRxQueues())
+	log.Printf("port %d:\nnrxq=%d, ntxq=%d\ndriver=%s, flags=%d\n", pid,
+		info.NbRxQueues(),
+		info.NbTxQueues(),
+		info.DriverName(),
+		info.DevFlags(),
+	)
 	return nil
 }

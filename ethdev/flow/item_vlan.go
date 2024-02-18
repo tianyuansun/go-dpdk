@@ -56,7 +56,7 @@ func (item *ItemVlan) Reload() {
 	hdr := (*C.struct_rte_vlan_hdr)(off(unsafe.Pointer(cptr), C.ITEM_VLAN_OFF_HDR))
 	beU16(item.TCI, unsafe.Pointer(&hdr.vlan_tci))
 	beU16(item.InnerType, unsafe.Pointer(&hdr.eth_proto))
-
+	runtime.SetFinalizer(item, nil)
 	runtime.SetFinalizer(item, (*ItemVlan).free)
 }
 

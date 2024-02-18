@@ -34,6 +34,15 @@ func beU32(n uint32, p unsafe.Pointer) {
 	binary.BigEndian.PutUint32(d, n)
 }
 
+func leU32(n uint32, p unsafe.Pointer) {
+	var d []byte
+	sh := (*reflect.SliceHeader)(unsafe.Pointer(&d))
+	sh.Data = uintptr(p)
+	sh.Len = 4
+	sh.Cap = sh.Len
+	binary.LittleEndian.PutUint32(d, n)
+}
+
 type cPointer struct {
 	cptr unsafe.Pointer
 }

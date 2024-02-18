@@ -52,6 +52,7 @@ var _ ItemStruct = (*ItemIPv4)(nil)
 func (item *ItemIPv4) Reload() {
 	cptr := (*C.struct_rte_flow_item_ipv4)(item.createOrRet(C.sizeof_struct_rte_flow_item_ipv4))
 	cvtIPv4Header(&cptr.hdr, &item.Header)
+	runtime.SetFinalizer(item, nil)
 	runtime.SetFinalizer(item, (*ItemIPv4).free)
 }
 

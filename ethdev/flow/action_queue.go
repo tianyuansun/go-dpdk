@@ -24,6 +24,7 @@ func (action *ActionQueue) Reload() {
 	cptr := (*C.struct_rte_flow_action_queue)(action.createOrRet(C.sizeof_struct_rte_flow_action_queue))
 
 	cptr.index = C.uint16_t(action.Index)
+	runtime.SetFinalizer(action, nil)
 	runtime.SetFinalizer(action, (*ActionQueue).free)
 }
 

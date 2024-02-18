@@ -83,8 +83,8 @@ func mlxRssEthVlanIPv4(pid ethdev.Port, conf *ethdev.RssConf) (*flow.Flow, error
 	attr := &flow.Attr{Ingress: true}
 
 	pattern := []flow.Item{
-		{Spec: flow.ItemTypeEth},  // Ethernet
-		{Spec: flow.ItemTypeVlan}, // VLAN
+		{Spec: flow.ItemTypeEth}, // Ethernet
+		// {Spec: flow.ItemTypeVlan}, // VLAN
 		{Spec: flow.ItemTypeIPv4}, // IPv4
 	}
 
@@ -120,7 +120,8 @@ func (c *RssConfig) EthdevCall(pid ethdev.Port) error {
 	var err error
 	switch driverName(pid) {
 	case "mlx5_pci":
-		_, err = mlxRssEthVlanIPv4(pid, c.Conf)
+		// _, err = mlxRssEthVlanIPv4(pid, c.Conf)
+		return nil
 	case "net_af_packet":
 		fallthrough
 	case "net_ice":

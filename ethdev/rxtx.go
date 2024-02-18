@@ -44,9 +44,9 @@ func TxBufferSize(mbufCnt int) uintptr {
 
 // RxBurst receives packets for port pid and queue qid. Returns number of
 // packets retrieved into pkts.
-func (pid Port) RxBurst(qid uint16, pkts []*mbuf.Mbuf) uint16 {
+func (pid Port) RxBurst(qid uint16, pkts []*mbuf.Mbuf, burst uint16) uint16 {
 	return uint16(C.rte_eth_rx_burst(C.uint16_t(pid), C.uint16_t(qid),
-		(**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])), C.uint16_t(len(pkts))))
+		(**C.struct_rte_mbuf)(unsafe.Pointer(&pkts[0])), C.uint16_t(burst)))
 }
 
 // TxBurst sends packets over port pid and queue qid. Returns number of

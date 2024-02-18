@@ -2,13 +2,64 @@ package flow
 
 /*
 #include <stdint.h>
+#include <stdio.h>              // snprintf
 #include <rte_config.h>
 #include <rte_flow.h>
+
+static struct rte_flow_query_count g_flow_query_count = {
+    .reset = 0,
+    .hits_set = 1,
+    .bytes_set = 1,
+    .hits = 0,
+    .bytes = 0,
+};
+
+static struct rte_flow_action g_flow_query_count_action = {
+    .type = RTE_FLOW_ACTION_TYPE_COUNT,
+    .conf = &g_flow_query_count,
+};
+
+static struct rte_flow_action g_flow_query_end_action = {
+    .type = RTE_FLOW_ACTION_TYPE_END,
+    .conf = NULL,
+};
+
+typedef struct RXTXStats {
+	uint64_t Hits;
+	uint64_t Bytes;
+} RXTXStats;
+
+int bec_rte_flow_query_count(uint16_t port_id,
+	       struct rte_flow *flow,
+	       struct RXTXStats *stats,
+	       struct rte_flow_error *error)
+{
+	int ret = 0;
+	struct rte_flow_action actions[2];
+	actions[0] = g_flow_query_count_action;
+    actions[1] = g_flow_query_end_action;
+
+	struct rte_flow_query_count count;
+	memset(&count, 0, sizeof(count));
+
+	ret = rte_flow_query(port_id, flow, actions, &count, error);
+	if (!ret) {
+		stats->Hits = count.hits;
+		stats->Bytes = count.bytes;
+	} else {
+		stats->Hits = 0;
+		stats->Bytes = 0;
+	}
+	// fprintf(stderr, "c2s stats: hits set %u bytes set %u hits %u bytes %u", count.hits_set, count.bytes_set, count.hits, count.bytes);
+	return ret;
+}
+
 */
 import "C"
 
 import (
 	"runtime"
+	"unsafe"
 
 	"github.com/yerden/go-dpdk/common"
 	"github.com/yerden/go-dpdk/ethdev"
@@ -22,6 +73,11 @@ const _ uintptr = -uintptr(ActionTypeEnd)
 
 // Flow is the opaque flow handle.
 type Flow C.struct_rte_flow
+
+type RXTXStats struct {
+	Hits  uint64
+	Bytes uint64
+}
 
 // allocate c-style list of rte_flow_item's.
 func cPattern(pattern []Item) []C.struct_rte_flow_item {
@@ -156,4 +212,9 @@ func Flush(port ethdev.Port, flowErr *Error) error {
 // PMDs initialize this structure in case of error only.
 func Isolate(port ethdev.Port, set int, flowErr *Error) error {
 	return common.IntToErr(C.rte_flow_isolate(C.ushort(port), C.int(set), (*C.struct_rte_flow_error)(flowErr)))
+}
+
+// Query query count
+func Query(port ethdev.Port, flow *Flow, stats *RXTXStats, flowErr *Error) error {
+	return common.IntToErr(C.bec_rte_flow_query_count(C.ushort(port), (*C.struct_rte_flow)(flow), (*C.RXTXStats)(unsafe.Pointer(stats)), (*C.struct_rte_flow_error)(flowErr)))
 }

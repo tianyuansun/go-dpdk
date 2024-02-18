@@ -5,18 +5,19 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yerden/go-dpdk/eal"
-	"github.com/yerden/go-dpdk/ethdev"
 )
 
 var metricsEndpoint = flag.String("metrics", ":10010", "Specify listen address for Prometheus endpoint")
 var fcMode FcModeFlag
 
 func main() {
+	debug.SetGCPercent(1000)
 	n, err := eal.Init(os.Args)
 	if err != nil {
 		log.Fatal(err)
@@ -29,7 +30,7 @@ func main() {
 
 	flag.Parse()
 	reg := prometheus.NewRegistry()
-	ethdev.RegisterTelemetryLSC("/ethdev/lsc")
+	// ethdev.RegisterTelemetryLSC("/ethdev/lsc")
 	app, err := NewApp(reg)
 	if err != nil {
 		panic(err)
@@ -48,6 +49,7 @@ func main() {
 
 		for range ticker.C {
 			app.Stats.Report()
+			app.ReportFlowStats()
 		}
 	}()
 
