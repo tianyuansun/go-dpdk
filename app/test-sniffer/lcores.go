@@ -144,6 +144,7 @@ func LcoreFunc(pq PortQueue, qcr *QueueCounterReporter) func(*eal.LcoreCtx) {
 					if pkt.Overlay {
 						msg += "ether %s\nipv4 %s\nudp %s\nvxlan %s\n"
 						msg += "inner ether %s\narp %s\nipv4 %s\nicmp %s\n"
+						msg += "ipv6 %s\n"
 						fmt.Printf(
 							msg,
 							pkt.OuterEther,
@@ -154,6 +155,7 @@ func LcoreFunc(pq PortQueue, qcr *QueueCounterReporter) func(*eal.LcoreCtx) {
 							pkt.GetARP(),
 							pkt.GetIPv4(),
 							pkt.GetICMPForIPv4(),
+							pkt.GetIPv6(),
 						)
 					} else {
 						msg += "ether %s\nipv4 %s\nicmp %s\n"
@@ -191,6 +193,10 @@ func LcoreFunc(pq PortQueue, qcr *QueueCounterReporter) func(*eal.LcoreCtx) {
 					pkt.GetIPv4().DstAddr = tmpIP
 					if ipv4.NextProtoID == types.ICMPNumber {
 						icmp := pkt.GetICMPForIPv4()
+						if icmp.Type != types.ICMPTypeEchoRequest {
+							pkt.CMbuf.PktMbufFree()
+							continue
+						}
 						icmp.Type = types.ICMPTypeEchoResponse
 						icmp.Cksum = packet.SwapBytesUint16(packet.CalculateIPv4ICMPChecksum(ipv4, icmp, pkt.Data))
 					} else if ipv4.NextProtoID == types.UDPNumber {
@@ -198,9 +204,58 @@ func LcoreFunc(pq PortQueue, qcr *QueueCounterReporter) func(*eal.LcoreCtx) {
 						pkt.GetUDPForIPv4().SrcPort = pkt.GetUDPForIPv4().DstPort
 						pkt.GetUDPForIPv4().DstPort = tmpPort
 						// pkt.GetUDPForIPv4().DgramCksum = packet.SwapBytesUint16(packet.CalculateIPv4UDPChecksum(pkt.GetIPv4(), pkt.GetUDPForIPv4(), pkt.Data))
+					} else {
+						pkt.CMbuf.PktMbufFree()
+						continue
 					}
 					ipCsum := packet.CalculateIPv4Checksum(ipv4)
 					pkt.GetIPv4().HdrChecksum = packet.SwapBytesUint16(ipCsum)
+				} else if ether.EtherType == packet.SwapBytesUint16(types.IPV6Number) {
+					ipv6 := pkt.GetIPv6()
+					tmpIP := pkt.GetIPv6NoCheck().SrcAddr
+					pkt.GetIPv6NoCheck().SrcAddr = pkt.GetIPv6NoCheck().DstAddr
+					pkt.GetIPv6NoCheck().DstAddr = tmpIP
+					if ipv6.Proto == types.ICMPv6Number {
+						icmp := pkt.GetICMPForIPv6()
+						icmp6Type := icmp.Type
+						if icmp6Type == types.ICMPv6TypeEchoRequest {
+							icmp.Type = types.ICMPv6TypeEchoResponse
+							icmp.Cksum = packet.SwapBytesUint16(packet.CalculateIPv6ICMPChecksum(ipv6, icmp, pkt.Data))
+						} else if icmp6Type == types.ICMPv6NeighborSolicitation {
+							pkt.ParseL7(types.ICMPv6Number)
+							rawTargetIP := pkt.GetICMPv6NeighborSolicitationMessage().TargetAddr
+
+							icmp.Type = types.ICMPv6NeighborAdvertisement
+							icmp.Identifier = packet.SwapBytesUint16(packet.ICMPv6NDSolicitedFlag | packet.ICMPv6NDOverrideFlag)
+							// pkt.GetIPv6NoCheck().DstAddr = types.IPv6Address{0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}
+							pkt.GetIPv6NoCheck().SrcAddr = rawTargetIP
+							srcMAC := types.MACAddress{0x0a, 0x58, 0xda, 0x97, 0x5a, 0x6f}
+							ether.SAddr = srcMAC
+
+							// if mbuf.AppendMbuf(pkt.CMbuf, packet.ICMPv6NDTargetLinkLayerAddressOptionSize) == false {
+							// 	pkt.CMbuf.PktMbufFree()
+							// 	continue
+							// }
+
+							msg := pkt.GetICMPv6NeighborAdvertisementMessage()
+							msg.TargetAddr = rawTargetIP
+							option := pkt.GetICMPv6NDTargetLinkLayerAddressOption(packet.ICMPv6NeighborAdvertisementMessageSize)
+							option.Type = packet.ICMPv6NDTargetLinkLayerAddress
+							option.Length = uint8(packet.ICMPv6NDTargetLinkLayerAddressOptionSize / packet.ICMPv6NDMessageOptionUnitSize)
+							option.LinkLayerAddress = srcMAC
+							icmp.Cksum = packet.SwapBytesUint16(packet.CalculateIPv6ICMPChecksum(ipv6, icmp, pkt.Data))
+						} else if icmp6Type == types.ICMPv6TypeRouterSolicitation {
+							pkt.CMbuf.PktMbufFree()
+							continue
+						}
+					} else if ipv6.Proto == types.UDPNumber {
+						tmpPort := pkt.GetUDPForIPv6().SrcPort
+						pkt.GetUDPForIPv6().SrcPort = pkt.GetUDPForIPv6().DstPort
+						pkt.GetUDPForIPv6().DstPort = tmpPort
+					} else {
+						pkt.CMbuf.PktMbufFree()
+						continue
+					}
 				}
 				if pkt.Overlay {
 					tmpMac = pkt.OuterEther.SAddr
@@ -221,6 +276,7 @@ func LcoreFunc(pq PortQueue, qcr *QueueCounterReporter) func(*eal.LcoreCtx) {
 					if pkt.Overlay {
 						msg += "ether %s\nipv4 %s\nudp %s\nvxlan %s\n"
 						msg += "inner ether %s\narp %s\nipv4 %s\nicmp %s\n"
+						msg += "ipv6 %s\n"
 						fmt.Printf(
 							msg,
 							pkt.OuterEther,
@@ -231,6 +287,7 @@ func LcoreFunc(pq PortQueue, qcr *QueueCounterReporter) func(*eal.LcoreCtx) {
 							pkt.GetARP(),
 							pkt.GetIPv4(),
 							pkt.GetICMPForIPv4(),
+							pkt.GetIPv6(),
 						)
 					} else {
 						msg += "ether %s\nipv4 %s\nicmp %s\n"

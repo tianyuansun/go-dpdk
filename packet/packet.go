@@ -280,7 +280,7 @@ func (packet *Packet) unparsed() unsafe.Pointer {
 // StartAtOffset function return pointer to first byte of packet
 // with given offset.
 func (packet *Packet) StartAtOffset(offset uintptr) unsafe.Pointer {
-	start := unsafe.Pointer(packet.Ether)
+	start := unsafe.Pointer(packet.L2)
 	return unsafe.Pointer(uintptr(start) + offset)
 }
 
@@ -317,7 +317,7 @@ func (packet *Packet) GetARPNoCheck() *ARPHdr {
 
 // GetIPv6 ensures if EtherType is IPv6 and cast L3 pointer to IPv6Hdr type.
 func (packet *Packet) GetIPv6() *IPv6Hdr {
-	if packet.Ether.EtherType == SwapBytesUint16(types.IPV6Number) {
+	if packet.GetEther().EtherType == SwapBytesUint16(types.IPV6Number) {
 		return (*IPv6Hdr)(packet.L3)
 	}
 	return nil
