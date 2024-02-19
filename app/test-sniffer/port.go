@@ -115,15 +115,66 @@ func (conf *EthdevConfig) Configure(pid ethdev.Port) error {
 
 func printPortConfig(pid ethdev.Port) error {
 	var info ethdev.DevInfo
+	var conf ethdev.DevConf
 	if err := pid.InfoGet(&info); err != nil {
 		return err
 	}
+	if err := pid.DevConfGet(&conf); err != nil {
+		return err
+	}
 
-	log.Printf("port %d:\nnrxq=%d, ntxq=%d\ndriver=%s, flags=%d\n", pid,
+	log.Printf("port %d:\nnrxq=%d, ntxq=%d\ndriver=%s, flags=%d, tx offloads= %s\n", pid,
 		info.NbRxQueues(),
 		info.NbTxQueues(),
 		info.DriverName(),
 		info.DevFlags(),
+		printTXOffloads(conf.TxOffloadCapa()),
 	)
 	return nil
+}
+
+func printTXOffloads(offloads uint64) string {
+	ret := ""
+	var single_offload uint64
+	var begin, end, bit int
+	if offloads == 0 {
+		return ret
+	}
+	begin = int(ctzll(offloads))
+	end = 64 - int(clzll(offloads))
+	single_offload = 1 << begin
+	for bit = begin; bit < end; bit++ {
+		log.Printf("bit %d begin %d end %d single_offload %d\n", bit, begin, end, single_offload)
+		if offloads&single_offload != 0 {
+			name := single_offload
+			ret += fmt.Sprintf(" %d", name)
+		}
+		single_offload <<= 1
+	}
+	return ret
+}
+
+func ctzll(x uint64) uint64 {
+	if x == 0 {
+		return 64
+	}
+
+	var i uint64
+	for i = 0; x&1 == 0; i++ {
+		x >>= 1
+	}
+	return i
+}
+
+func clzll(x uint64) uint64 {
+	if x == 0 {
+		return 64
+	}
+
+	var i uint64
+	for x&0x8000000000000000 == 0 {
+		x <<= 1
+		i++
+	}
+	return i
 }

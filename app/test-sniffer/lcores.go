@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"log"
@@ -137,52 +136,111 @@ func LcoreFunc(pq PortQueue, qcr *QueueCounterReporter) func(*eal.LcoreCtx) {
 				pkt := packet.Packet{
 					CMbuf: buf[i],
 				}
-				pkt.ParseL2()
-				pkt.ParseL3()
-				pkt.ParseL4ForIPv4()
+				pkt.VxlanDecap()
 				pkt.ParseData()
 
 				if *printMetadata {
-					pkt.ParseL2()
-					pkt.ParseL3()
-					pkt.ParseL4ForIPv4()
-					pkt.ParseData()
-					fmt.Printf("rx packet:\nether %s\nipv4 %s\nicmp: %s\n",
-						pkt.GetEther().String(),
-						pkt.GetIPv4().String(),
-						pkt.GetICMPForIPv4().String(),
-					)
+					msg := "rx packet:\n"
+					if pkt.Overlay {
+						msg += "ether %s\nipv4 %s\nudp %s\nvxlan %s\n"
+						msg += "inner ether %s\narp %s\nipv4 %s\nicmp %s\n"
+						fmt.Printf(
+							msg,
+							pkt.OuterEther,
+							pkt.OuterIPv4Hdr,
+							pkt.OuterUDPHdr,
+							pkt.VxlanHeader,
+							pkt.GetEther(),
+							pkt.GetARP(),
+							pkt.GetIPv4(),
+							pkt.GetICMPForIPv4(),
+						)
+					} else {
+						msg += "ether %s\nipv4 %s\nicmp %s\n"
+						fmt.Printf(
+							msg,
+							pkt.GetEther(),
+							pkt.GetIPv4(),
+							pkt.GetICMPForIPv4(),
+						)
+					}
 				}
-				tmpMac := pkt.GetEther().SAddr
-				pkt.GetEther().SAddr = pkt.GetEther().DAddr
-				pkt.GetEther().DAddr = tmpMac
-				ipv4 := pkt.GetIPv4()
-				tmpIP := pkt.GetIPv4().SrcAddr
-				pkt.GetIPv4().SrcAddr = pkt.GetIPv4().DstAddr
-				pkt.GetIPv4().DstAddr = tmpIP
-				if ipv4.NextProtoID == types.ICMPNumber {
-					icmp := pkt.GetICMPForIPv4()
-					icmp.Type = types.ICMPTypeEchoResponse
-					icmp.Cksum = packet.SwapBytesUint16(packet.CalculateIPv4ICMPChecksum(ipv4, icmp, pkt.Data))
-				} else if ipv4.NextProtoID == types.UDPNumber {
-					tmpPort := pkt.GetUDPForIPv4().SrcPort
-					pkt.GetUDPForIPv4().SrcPort = pkt.GetUDPForIPv4().DstPort
-					pkt.GetUDPForIPv4().DstPort = tmpPort
+				ether := pkt.GetEther()
+				tmpMac := ether.SAddr
+				ether.SAddr = ether.DAddr
+				ether.DAddr = tmpMac
+				if ether.EtherType == packet.SwapBytesUint16(types.ARPNumber) {
+					arp := pkt.GetARP()
+					if arp.Operation != packet.SwapBytesUint16(packet.ARPRequest) {
+						pkt.CMbuf.PktMbufFree()
+						continue
+					}
+					arp.Operation = packet.SwapBytesUint16(packet.ARPReply)
+					tmp := arp.SHA
+					// 0a:58:da:97:5a:6f
+					arp.SHA = types.MACAddress{0x0a, 0x58, 0xda, 0x97, 0x5a, 0x6f}
+					ether.SAddr = arp.SHA
+					arp.THA = tmp
+					tmpIP := arp.SPA
+					arp.SPA = arp.TPA
+					arp.TPA = tmpIP
+				} else if ether.EtherType == packet.SwapBytesUint16(types.IPV4Number) {
+					ipv4 := pkt.GetIPv4()
+					tmpIP := pkt.GetIPv4().SrcAddr
+					pkt.GetIPv4().SrcAddr = pkt.GetIPv4().DstAddr
+					pkt.GetIPv4().DstAddr = tmpIP
+					if ipv4.NextProtoID == types.ICMPNumber {
+						icmp := pkt.GetICMPForIPv4()
+						icmp.Type = types.ICMPTypeEchoResponse
+						icmp.Cksum = packet.SwapBytesUint16(packet.CalculateIPv4ICMPChecksum(ipv4, icmp, pkt.Data))
+					} else if ipv4.NextProtoID == types.UDPNumber {
+						tmpPort := pkt.GetUDPForIPv4().SrcPort
+						pkt.GetUDPForIPv4().SrcPort = pkt.GetUDPForIPv4().DstPort
+						pkt.GetUDPForIPv4().DstPort = tmpPort
+						// pkt.GetUDPForIPv4().DgramCksum = packet.SwapBytesUint16(packet.CalculateIPv4UDPChecksum(pkt.GetIPv4(), pkt.GetUDPForIPv4(), pkt.Data))
+					}
+					ipCsum := packet.CalculateIPv4Checksum(ipv4)
+					pkt.GetIPv4().HdrChecksum = packet.SwapBytesUint16(ipCsum)
 				}
-				ipCsum := packet.CalculateIPv4Checksum(ipv4)
-				pkt.GetIPv4().HdrChecksum = packet.SwapBytesUint16(ipCsum)
+				if pkt.Overlay {
+					tmpMac = pkt.OuterEther.SAddr
+					pkt.OuterEther.SAddr = pkt.OuterEther.DAddr
+					pkt.OuterEther.DAddr = tmpMac
+					outIPv4 := pkt.OuterIPv4Hdr
+					tmpIP := outIPv4.SrcAddr
+					outIPv4.SrcAddr = outIPv4.DstAddr
+					outIPv4.DstAddr = tmpIP
+					pkt.OuterUDPHdr.DgramCksum = 0
+					// tmpPort := pkt.OuterUDPHdr.SrcPort
+					// pkt.OuterUDPHdr.SrcPort = pkt.OuterUDPHdr.DstPort
+					// pkt.OuterUDPHdr.DstPort = tmpPort
+				}
 
 				if *printMetadata {
-					pkt.ParseL2()
-					pkt.ParseL3()
-					pkt.ParseL4ForIPv4()
-					pkt.ParseData()
-					fmt.Printf("tx packet:\nether %s\nipv4 %s\nudp: %s\n",
-						pkt.GetEther().String(),
-						pkt.GetIPv4().String(),
-						pkt.GetICMPForIPv4().String(),
-					)
-					fmt.Printf("raw packet is %s\n", hex.EncodeToString(pkt.CMbuf.Data()))
+					msg := "tx packet:\n"
+					if pkt.Overlay {
+						msg += "ether %s\nipv4 %s\nudp %s\nvxlan %s\n"
+						msg += "inner ether %s\narp %s\nipv4 %s\nicmp %s\n"
+						fmt.Printf(
+							msg,
+							pkt.OuterEther,
+							pkt.OuterIPv4Hdr,
+							pkt.OuterUDPHdr,
+							pkt.VxlanHeader,
+							pkt.GetEther(),
+							pkt.GetARP(),
+							pkt.GetIPv4(),
+							pkt.GetICMPForIPv4(),
+						)
+					} else {
+						msg += "ether %s\nipv4 %s\nicmp %s\n"
+						fmt.Printf(
+							msg,
+							pkt.GetEther(),
+							pkt.GetIPv4(),
+							pkt.GetICMPForIPv4(),
+						)
+					}
 				}
 				pid.TxBuffer(rxQid, txBuf, pkt.CMbuf)
 			}

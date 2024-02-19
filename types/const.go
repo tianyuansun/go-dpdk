@@ -75,6 +75,7 @@ const (
 	ARPLen     = 28
 	GTPMinLen  = 8
 	GRELen     = 4
+	VXLANLen   = 8
 )
 
 const (

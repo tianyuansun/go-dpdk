@@ -154,6 +154,17 @@ func (hdr *ICMPHdr) String() string {
 	return r0 + r1 + r2 + r3 + r4 + r5
 }
 
+type VXLANHeader struct {
+	Flags uint32
+	VNI   uint32
+}
+
+func (hdr *VXLANHeader) String() string {
+	r0 := "        Protocol: VXLAN\n"
+	r1 := fmt.Sprintf("     VXLAN VNI: %d\n", hdr.VNI)
+	return r0 + r1
+}
+
 // Packet is a set of pointers in NFF-GO library. Each pointer points to one of five headers:
 // Mac, IPv4, IPv6, TCP and UDP plus raw pointer.
 //
@@ -164,10 +175,20 @@ func (hdr *ICMPHdr) String() string {
 // after user fills IPv4 pointer to right place inside packet he can use its fields like
 // packet.IPv4.SrcAddr or packet.IPv4.DstAddr.
 type Packet struct {
-	L2   unsafe.Pointer
+	L2   unsafe.Pointer // Pointer to L2 header in mbuf
 	L3   unsafe.Pointer // Pointer to L3 header in mbuf
 	L4   unsafe.Pointer // Pointer to L4 header in mbuf
 	Data unsafe.Pointer // Pointer to the packet payload data
+
+	OuterL2      unsafe.Pointer
+	OuterL3      unsafe.Pointer
+	OuterL4      unsafe.Pointer
+	OuterEther   *EtherHdr
+	OuterIPv4Hdr *IPv4Hdr
+	OuterUDPHdr  *UDPHdr
+	VxlanHeader  *VXLANHeader
+
+	Overlay bool
 
 	// Last two fields of this structure is filled during InitMbuf macros inside low.c file
 	// Need to change low.c for all changes in these fields or adding/removing fields before them.
@@ -177,18 +198,82 @@ type Packet struct {
 	Next *Packet // non nil if packet consists of several chained mbufs
 }
 
-func (packet *Packet) ParseL2() {
+func (packet *Packet) VxlanDecap() int {
+	var ether *EtherHdr
+	var pktIPv4 *IPv4Hdr
+	var pktIPv6 *IPv6Hdr
+	var pktARP *ARPHdr
 
+	var pktTCP *TCPHdr
+	var pktICMP *ICMPHdr
+	var pktUDP *UDPHdr
+
+	packet.Overlay = false
+	packet.ParseL2()
+	ether = packet.GetEther()
+	etherType := ether.EtherType
+	if etherType == types.SwapARPNumber || etherType == types.SwapIPV6Number {
+		packet.ParseL3()
+		return -1
+	}
+	if etherType == types.SwapIPV4Number {
+		packet.ParseL3()
+	}
+
+	pktIPv4, _, _ = packet.ParseAllKnownL3()
+	if pktIPv4 == nil {
+		return -1
+	}
+
+	_, pktUDP, _ = packet.ParseAllKnownL4ForIPv4()
+	if pktUDP == nil || SwapBytesUint16(pktUDP.DstPort) != 4789 {
+		return -1
+	}
+
+	packet.Overlay = true
+	packet.OuterEther = ether
+	packet.OuterIPv4Hdr = pktIPv4
+	packet.OuterUDPHdr = pktUDP
+	packet.VxlanHeader = (*VXLANHeader)(unsafe.Pointer(uintptr(packet.L4) + uintptr(types.UDPLen)))
+	packet.OuterL2 = packet.L2
+	packet.OuterL3 = packet.L3
+	packet.OuterL4 = packet.L4
+	packet.L3 = unsafe.Pointer(uintptr(0))
+	packet.L4 = unsafe.Pointer(uintptr(0))
+	packet.L2 = unsafe.Pointer(uintptr(packet.OuterL4) + uintptr(types.UDPLen) + uintptr(types.VXLANLen))
+	pktIPv4, pktIPv6, pktARP = packet.ParseAllKnownL3()
+	if pktARP != nil {
+		return 0
+	} else {
+		if pktIPv4 != nil {
+			pktTCP, pktUDP, pktICMP = packet.ParseAllKnownL4ForIPv4()
+		} else if pktIPv6 != nil {
+			pktTCP, pktUDP, pktICMP = packet.ParseAllKnownL4ForIPv6()
+		}
+
+		if pktTCP != nil {
+			packet.Data = unsafe.Pointer(uintptr(packet.L4) + uintptr(((*TCPHdr)(packet.L4)).DataOff&0xf0)>>2)
+		} else if pktUDP != nil {
+			packet.Data = unsafe.Pointer(uintptr(packet.L4) + uintptr(types.UDPLen))
+		} else if pktICMP != nil {
+			packet.Data = unsafe.Pointer(uintptr(packet.L4) + uintptr(types.ICMPLen))
+		} else {
+			return -1
+		}
+	}
+
+	return 0
+}
+
+func (packet *Packet) ParseL2() {
 	packet.L2 = unsafe.Pointer(packet.CMbuf.L2())
 }
 
 func (packet *Packet) GetEther() *EtherHdr {
-	packet.ParseL2()
 	return (*EtherHdr)(packet.L2)
 }
 
 func (packet *Packet) unparsed() unsafe.Pointer {
-	packet.ParseL2()
 	return unsafe.Pointer(uintptr(packet.L2) + types.EtherLen)
 }
 
@@ -219,7 +304,7 @@ func (packet *Packet) GetIPv4NoCheck() *IPv4Hdr {
 
 // GetARP ensures if EtherType is ARP and casts L3 pointer to ARPHdr type.
 func (packet *Packet) GetARP() *ARPHdr {
-	if packet.Ether.EtherType == SwapBytesUint16(types.ARPNumber) {
+	if packet.GetEther().EtherType == SwapBytesUint16(types.ARPNumber) {
 		return (*ARPHdr)(packet.L3)
 	}
 	return nil
@@ -324,10 +409,10 @@ func (packet *Packet) ParseAllKnownL3() (*IPv4Hdr, *IPv6Hdr, *ARPHdr) {
 	packet.ParseL3()
 	if packet.GetIPv4() != nil {
 		return packet.GetIPv4NoCheck(), nil, nil
-	} else if packet.GetIPv6() != nil {
-		return nil, packet.GetIPv6NoCheck(), nil
 	} else if packet.GetARP() != nil {
 		return nil, nil, packet.GetARPNoCheck()
+	} else if packet.GetIPv6() != nil {
+		return nil, packet.GetIPv6NoCheck(), nil
 	}
 	return nil, nil, nil
 }
@@ -335,10 +420,10 @@ func (packet *Packet) ParseAllKnownL3() (*IPv4Hdr, *IPv6Hdr, *ARPHdr) {
 // ParseAllKnownL4ForIPv4 parses L4 field if L3 type is IPv4 and returns pointers to parsed headers.
 func (packet *Packet) ParseAllKnownL4ForIPv4() (*TCPHdr, *UDPHdr, *ICMPHdr) {
 	packet.ParseL4ForIPv4()
-	if packet.GetTCPForIPv4() != nil {
-		return packet.GetTCPNoCheck(), nil, nil
-	} else if packet.GetUDPForIPv4() != nil {
+	if packet.GetUDPForIPv4() != nil {
 		return nil, packet.GetUDPNoCheck(), nil
+	} else if packet.GetTCPForIPv4() != nil {
+		return packet.GetTCPNoCheck(), nil, nil
 	} else if packet.GetICMPForIPv4() != nil {
 		return nil, nil, packet.GetICMPNoCheck()
 	}

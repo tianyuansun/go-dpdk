@@ -481,6 +481,12 @@ func (c *ethConf) free() {
 	}
 }
 
+type DevConf C.struct_rte_eth_conf
+
+func (conf *DevConf) TxOffloadCapa() uint64 {
+	return uint64(conf.txmode.offloads)
+}
+
 // OptTxMode specifies port TX configuration.
 func OptTxMode(conf TxMode) Option {
 	return Option{func(c *ethConf) {
@@ -941,6 +947,10 @@ func (pid Port) InfoGet(info *DevInfo) error {
 	return errget(C.rte_eth_dev_info_get(C.ushort(pid), (*C.struct_rte_eth_dev_info)(info)))
 }
 
+func (pid Port) DevConfGet(conf *DevConf) error {
+	return errget(C.rte_eth_dev_conf_get(C.ushort(pid), (*C.struct_rte_eth_conf)(conf)))
+}
+
 // Name get the device name from port id. The device name is specified as below:
 //
 //   - PCIe address (Domain:Bus:Device.Function), for example- 0000:02:00.0
@@ -1019,6 +1029,14 @@ func (info *DevInfo) MaxRxQueues() uint16 {
 // MaxTxQueues returns maximum number of Tx queues.
 func (info *DevInfo) MaxTxQueues() uint16 {
 	return uint16(info.max_tx_queues)
+}
+
+func (info *DevInfo) TxQueueOffloadCapa() uint64 {
+	return uint64(info.tx_queue_offload_capa)
+}
+
+func (info *DevInfo) TxOffloadCapa() uint64 {
+	return uint64(info.tx_offload_capa)
 }
 
 // available from DPDK v22.11 https://doc.dpdk.org/api-22.11/structrte__eth__dev__info.html#a977df447c171065d6b6a9bded521e0f9

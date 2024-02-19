@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"runtime/debug"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -17,7 +16,7 @@ var metricsEndpoint = flag.String("metrics", ":10010", "Specify listen address f
 var fcMode FcModeFlag
 
 func main() {
-	debug.SetGCPercent(1000)
+	// debug.SetGCPercent(1000)
 	n, err := eal.Init(os.Args)
 	if err != nil {
 		log.Fatal(err)
