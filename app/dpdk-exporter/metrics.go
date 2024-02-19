@@ -83,7 +83,7 @@ func setBooleanGauge(g prometheus.Gauge, v bool) {
 }
 
 type EthDevMetrics struct {
-	EthXstats *EthXstats
+	// EthXstats *EthXstats
 
 	AvailablePorts prometheus.Gauge
 
@@ -100,11 +100,11 @@ type EthDevMetrics struct {
 func NewEthDevMetrics() (*EthDevMetrics, error) {
 	var m EthDevMetrics
 
-	var err error
-	m.EthXstats, err = NewEthXstats()
-	if err != nil {
-		return nil, err
-	}
+	// var err error
+	// m.EthXstats, err = NewEthXstats()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	labelNames := []string{portNameLbl}
 	const subsystem = "eth_dev"
@@ -183,9 +183,9 @@ func (m *EthDevMetrics) Collect() error {
 		}).Set(1)
 	}
 
-	if err := m.EthXstats.Collect(); err != nil {
-		log.Printf("retrieve extended statistics of eth dev: %v", err)
-	}
+	// if err := m.EthXstats.Collect(); err != nil {
+	// 	log.Printf("retrieve extended statistics of eth dev: %v", err)
+	// }
 
 	return nil
 }

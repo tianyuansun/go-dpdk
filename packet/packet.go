@@ -161,7 +161,7 @@ type VXLANHeader struct {
 
 func (hdr *VXLANHeader) String() string {
 	r0 := "        Protocol: VXLAN\n"
-	r1 := fmt.Sprintf("     VXLAN VNI: %d\n", hdr.VNI)
+	r1 := fmt.Sprintf("     VXLAN VNI: %d\n", hdr.VNI>>16)
 	return r0 + r1
 }
 

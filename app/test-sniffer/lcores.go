@@ -200,6 +200,7 @@ func LcoreFunc(pq PortQueue, qcr *QueueCounterReporter) func(*eal.LcoreCtx) {
 						icmp.Type = types.ICMPTypeEchoResponse
 						icmp.Cksum = packet.SwapBytesUint16(packet.CalculateIPv4ICMPChecksum(ipv4, icmp, pkt.Data))
 					} else if ipv4.NextProtoID == types.UDPNumber {
+						// TODO: not support udp, drop
 						tmpPort := pkt.GetUDPForIPv4().SrcPort
 						pkt.GetUDPForIPv4().SrcPort = pkt.GetUDPForIPv4().DstPort
 						pkt.GetUDPForIPv4().DstPort = tmpPort
@@ -249,6 +250,7 @@ func LcoreFunc(pq PortQueue, qcr *QueueCounterReporter) func(*eal.LcoreCtx) {
 							continue
 						}
 					} else if ipv6.Proto == types.UDPNumber {
+						// TODO: not support udp, drop
 						tmpPort := pkt.GetUDPForIPv6().SrcPort
 						pkt.GetUDPForIPv6().SrcPort = pkt.GetUDPForIPv6().DstPort
 						pkt.GetUDPForIPv6().DstPort = tmpPort
@@ -266,6 +268,7 @@ func LcoreFunc(pq PortQueue, qcr *QueueCounterReporter) func(*eal.LcoreCtx) {
 					outIPv4.SrcAddr = outIPv4.DstAddr
 					outIPv4.DstAddr = tmpIP
 					pkt.OuterUDPHdr.DgramCksum = 0
+					// pkt.VxlanHeader.VNI = packet.SwapBytesUint32(42 << 8)
 					// tmpPort := pkt.OuterUDPHdr.SrcPort
 					// pkt.OuterUDPHdr.SrcPort = pkt.OuterUDPHdr.DstPort
 					// pkt.OuterUDPHdr.DstPort = tmpPort
@@ -301,7 +304,6 @@ func LcoreFunc(pq PortQueue, qcr *QueueCounterReporter) func(*eal.LcoreCtx) {
 				}
 				pid.TxBuffer(rxQid, txBuf, pkt.CMbuf)
 			}
-
 			qc.Incr(buf[:n])
 		}
 
