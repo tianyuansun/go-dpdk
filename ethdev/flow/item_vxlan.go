@@ -24,7 +24,7 @@ import "C"
 import (
 	"unsafe"
 
-	"icode.baidu.com/baidu/edge-os/xvr/mem"
+	"github.com/tianyuansun/go-dpdk/mem"
 )
 
 var _ ItemStruct = (*ItemVXLAN)(nil)

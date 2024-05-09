@@ -14,7 +14,7 @@ import "C"
 import (
 	"unsafe"
 
-	"icode.baidu.com/baidu/edge-os/xvr/types"
+	"github.com/tianyuansun/go-dpdk/types"
 )
 
 // TCPHdr L4 header from DPDK: lib/librte_net/rte_tcp.h
