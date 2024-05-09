@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/yerden/go-dpdk/ethdev"
+	"github.com/tianyuansun/go-dpdk/ethdev"
 )
 
 var statsInt = flag.Duration("statsInt", 10*time.Second, "Specify interval between collecting statistics")

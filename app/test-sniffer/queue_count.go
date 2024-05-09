@@ -5,10 +5,10 @@ import (
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/yerden/go-dpdk/eal"
-	"github.com/yerden/go-dpdk/ethdev"
-	"github.com/yerden/go-dpdk/mbuf"
-	"github.com/yerden/go-dpdk/util"
+	"github.com/tianyuansun/go-dpdk/eal"
+	"github.com/tianyuansun/go-dpdk/ethdev"
+	"github.com/tianyuansun/go-dpdk/mbuf"
+	"github.com/tianyuansun/go-dpdk/util"
 )
 
 type PacketBytes struct {

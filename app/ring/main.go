@@ -6,8 +6,8 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/yerden/go-dpdk/eal"
-	"github.com/yerden/go-dpdk/ring"
+	"github.com/tianyuansun/go-dpdk/eal"
+	"github.com/tianyuansun/go-dpdk/ring"
 )
 
 func main() {

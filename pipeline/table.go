@@ -14,8 +14,8 @@ import "C"
 import (
 	"unsafe"
 
-	"github.com/yerden/go-dpdk/common"
-	"github.com/yerden/go-dpdk/table"
+	"github.com/tianyuansun/go-dpdk/common"
+	"github.com/tianyuansun/go-dpdk/table"
 )
 
 // Table represents created table in a pipeline.

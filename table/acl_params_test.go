@@ -3,7 +3,7 @@ package table
 import (
 	"testing"
 
-	"github.com/yerden/go-dpdk/common"
+	"github.com/tianyuansun/go-dpdk/common"
 )
 
 func TestACLField(t *testing.T) {

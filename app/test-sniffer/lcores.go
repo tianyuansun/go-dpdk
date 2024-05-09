@@ -6,11 +6,11 @@ import (
 	"log"
 	"os"
 
-	"github.com/yerden/go-dpdk/eal"
-	"github.com/yerden/go-dpdk/ethdev"
-	"github.com/yerden/go-dpdk/packet"
-	"github.com/yerden/go-dpdk/types"
-	"github.com/yerden/go-dpdk/util"
+	"github.com/tianyuansun/go-dpdk/eal"
+	"github.com/tianyuansun/go-dpdk/ethdev"
+	"github.com/tianyuansun/go-dpdk/packet"
+	"github.com/tianyuansun/go-dpdk/types"
+	"github.com/tianyuansun/go-dpdk/util"
 )
 
 var burstSize = flag.Int("burst", 256, "Specify RX burst size")

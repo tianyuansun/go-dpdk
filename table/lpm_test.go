@@ -3,8 +3,8 @@ package table
 import (
 	"testing"
 
-	"github.com/yerden/go-dpdk/common"
-	"github.com/yerden/go-dpdk/eal"
+	"github.com/tianyuansun/go-dpdk/common"
+	"github.com/tianyuansun/go-dpdk/eal"
 )
 
 func TestLPMParams(t *testing.T) {

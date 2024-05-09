@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/yerden/go-dpdk/common"
+	"github.com/tianyuansun/go-dpdk/common"
 )
 
 func TestParseSplitDoubleQuotes(t *testing.T) {

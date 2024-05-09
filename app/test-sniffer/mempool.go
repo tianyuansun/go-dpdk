@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/yerden/go-dpdk/ethdev"
-	"github.com/yerden/go-dpdk/mempool"
+	"github.com/tianyuansun/go-dpdk/ethdev"
+	"github.com/tianyuansun/go-dpdk/mempool"
 )
 
 // RxqMempooler returns a mempool for specified port and rx queue.

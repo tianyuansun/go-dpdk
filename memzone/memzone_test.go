@@ -4,9 +4,9 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/yerden/go-dpdk/common"
-	"github.com/yerden/go-dpdk/eal"
-	"github.com/yerden/go-dpdk/memzone"
+	"github.com/tianyuansun/go-dpdk/common"
+	"github.com/tianyuansun/go-dpdk/eal"
+	"github.com/tianyuansun/go-dpdk/memzone"
 )
 
 func TestMemzoneCreateErr(t *testing.T) {

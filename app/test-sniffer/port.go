@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/yerden/go-dpdk/ethdev"
-	"github.com/yerden/go-dpdk/util"
+	"github.com/tianyuansun/go-dpdk/ethdev"
+	"github.com/tianyuansun/go-dpdk/util"
 )
 
 // EthdevCallback specifies callback to call on ethdev.Port.

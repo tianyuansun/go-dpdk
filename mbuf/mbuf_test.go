@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/yerden/go-dpdk/common"
-	"github.com/yerden/go-dpdk/eal"
-	"github.com/yerden/go-dpdk/mempool"
+	"github.com/tianyuansun/go-dpdk/common"
+	"github.com/tianyuansun/go-dpdk/eal"
+	"github.com/tianyuansun/go-dpdk/mempool"
 )
 
 func getSample(n int) []byte {

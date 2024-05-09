@@ -10,10 +10,10 @@ import (
 	"fmt"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/yerden/go-dpdk/eal"
-	"github.com/yerden/go-dpdk/ethdev"
-	"github.com/yerden/go-dpdk/ethdev/flow"
-	"github.com/yerden/go-dpdk/mempool"
+	"github.com/tianyuansun/go-dpdk/eal"
+	"github.com/tianyuansun/go-dpdk/ethdev"
+	"github.com/tianyuansun/go-dpdk/ethdev/flow"
+	"github.com/tianyuansun/go-dpdk/mempool"
 )
 
 type CmdMempool struct{}

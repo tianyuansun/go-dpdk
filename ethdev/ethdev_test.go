@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/yerden/go-dpdk/eal"
+	"github.com/tianyuansun/go-dpdk/eal"
 )
 
 func TestMACAddr(t *testing.T) {

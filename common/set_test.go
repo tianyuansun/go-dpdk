@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/yerden/go-dpdk/common"
+	"github.com/tianyuansun/go-dpdk/common"
 
 	"golang.org/x/sys/unix"
 )

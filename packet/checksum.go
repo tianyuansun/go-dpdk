@@ -3,7 +3,7 @@ package packet
 import (
 	"unsafe"
 
-	"github.com/yerden/go-dpdk/types"
+	"github.com/tianyuansun/go-dpdk/types"
 )
 
 // Software calculation of protocol headers. It is required for hardware checksum calculation offload

@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/yerden/go-dpdk/common"
+	"github.com/tianyuansun/go-dpdk/common"
 )
 
 // Ring is a fixed-size queue, implemented as a table of pointers.

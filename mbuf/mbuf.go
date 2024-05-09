@@ -54,9 +54,9 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/yerden/go-dpdk/common"
-	"github.com/yerden/go-dpdk/mempool"
-	"github.com/yerden/go-dpdk/types"
+	"github.com/tianyuansun/go-dpdk/common"
+	"github.com/tianyuansun/go-dpdk/mempool"
+	"github.com/tianyuansun/go-dpdk/types"
 )
 
 // ErrNullData is returned if NULL is returned by Cgo call.

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/yerden/go-dpdk/eal"
+	"github.com/tianyuansun/go-dpdk/eal"
 )
 
 var (

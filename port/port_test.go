@@ -3,9 +3,9 @@ package port
 import (
 	"testing"
 
-	"github.com/yerden/go-dpdk/common"
-	"github.com/yerden/go-dpdk/eal"
-	"github.com/yerden/go-dpdk/ring"
+	"github.com/tianyuansun/go-dpdk/common"
+	"github.com/tianyuansun/go-dpdk/eal"
+	"github.com/tianyuansun/go-dpdk/ring"
 )
 
 func TestPortRingRx(t *testing.T) {

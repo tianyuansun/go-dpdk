@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/yerden/go-dpdk/common"
+	"github.com/tianyuansun/go-dpdk/common"
 )
 
 var (

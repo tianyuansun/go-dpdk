@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yerden/go-dpdk/common"
-	"github.com/yerden/go-dpdk/eal"
-	"github.com/yerden/go-dpdk/mempool"
-	"github.com/yerden/go-dpdk/port"
-	"github.com/yerden/go-dpdk/table"
+	"github.com/tianyuansun/go-dpdk/common"
+	"github.com/tianyuansun/go-dpdk/eal"
+	"github.com/tianyuansun/go-dpdk/mempool"
+	"github.com/tianyuansun/go-dpdk/port"
+	"github.com/tianyuansun/go-dpdk/table"
 )
 
 func TestPipelineLoop(t *testing.T) {

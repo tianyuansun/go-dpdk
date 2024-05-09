@@ -7,7 +7,7 @@ package packet
 import (
 	"unsafe"
 
-	"github.com/yerden/go-dpdk/types"
+	"github.com/tianyuansun/go-dpdk/types"
 )
 
 const (

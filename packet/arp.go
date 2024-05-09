@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/yerden/go-dpdk/types"
+	"github.com/tianyuansun/go-dpdk/types"
 )
 
 // ARPHdr is protocol structure used in Address Resolution Protocol

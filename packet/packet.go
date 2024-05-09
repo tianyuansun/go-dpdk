@@ -6,8 +6,8 @@ import (
 	"log"
 	"unsafe"
 
-	"github.com/yerden/go-dpdk/mbuf"
-	"github.com/yerden/go-dpdk/types"
+	"github.com/tianyuansun/go-dpdk/mbuf"
+	"github.com/tianyuansun/go-dpdk/types"
 )
 
 var mbufStructSize uintptr
