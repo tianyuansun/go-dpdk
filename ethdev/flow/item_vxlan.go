@@ -22,8 +22,9 @@ static const struct rte_flow_item_vxlan *get_item_vxlan_mask() {
 */
 import "C"
 import (
-	"runtime"
 	"unsafe"
+
+	"icode.baidu.com/baidu/edge-os/xvr/mem"
 )
 
 var _ ItemStruct = (*ItemVXLAN)(nil)
@@ -40,10 +41,12 @@ func (item *ItemVXLAN) Reload() {
 
 	// if item.VNI != 0 {
 	// leU32(8, unsafe.Pointer(&hdr.vx_flags))
-	beU32(item.VNI<<8, unsafe.Pointer(&hdr.vx_vni))
+	// beU32(item.VNI, unsafe.Pointer(&hdr.vx_vni))
+	mem.Memcpy(unsafe.Pointer(&hdr.vx_vni), unsafe.Pointer(&item.VNI), 3)
+
 	// }
-	runtime.SetFinalizer(item, nil)
-	runtime.SetFinalizer(item, (*ItemVXLAN).free)
+	// runtime.SetFinalizer(item, nil)
+	// runtime.SetFinalizer(item, (*ItemVXLAN).free)
 }
 
 func (item *ItemVXLAN) Type() ItemType {

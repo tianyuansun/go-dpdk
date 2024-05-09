@@ -16,7 +16,6 @@ static const struct rte_flow_item_ipv4 *get_item_ipv4_mask() {
 */
 import "C"
 import (
-	"runtime"
 	"unsafe"
 )
 
@@ -52,8 +51,8 @@ var _ ItemStruct = (*ItemIPv4)(nil)
 func (item *ItemIPv4) Reload() {
 	cptr := (*C.struct_rte_flow_item_ipv4)(item.createOrRet(C.sizeof_struct_rte_flow_item_ipv4))
 	cvtIPv4Header(&cptr.hdr, &item.Header)
-	runtime.SetFinalizer(item, nil)
-	runtime.SetFinalizer(item, (*ItemIPv4).free)
+	// runtime.SetFinalizer(item, nil)
+	// runtime.SetFinalizer(item, (*ItemIPv4).free)
 }
 
 func cvtIPv4Header(dst *C.struct_rte_ipv4_hdr, src *IPv4Header) {

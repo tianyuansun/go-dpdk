@@ -12,10 +12,9 @@ static const struct rte_flow_item_tcp *get_item_tcp_mask() {
 */
 import "C"
 import (
-	"runtime"
 	"unsafe"
 
-	"github.com/yerden/go-dpdk/types"
+	"icode.baidu.com/baidu/edge-os/xvr/types"
 )
 
 // TCPHdr L4 header from DPDK: lib/librte_net/rte_tcp.h
@@ -44,8 +43,8 @@ var _ ItemStruct = (*ItemTCP)(nil)
 func (item *ItemTCP) Reload() {
 	cptr := (*C.struct_rte_flow_item_tcp)(item.createOrRet(C.sizeof_struct_rte_flow_item_tcp))
 	cvtTCPHeader(&cptr.hdr, &item.Header)
-	runtime.SetFinalizer(item, nil)
-	runtime.SetFinalizer(item, (*ItemTCP).free)
+	// runtime.SetFinalizer(item, nil)
+	// runtime.SetFinalizer(item, (*ItemTCP).free)
 }
 
 func cvtTCPHeader(dst *C.struct_rte_tcp_hdr, src *TCPHdr) {

@@ -12,7 +12,6 @@ static const struct rte_flow_item_udp *get_item_udp_mask() {
 */
 import "C"
 import (
-	"runtime"
 	"unsafe"
 )
 
@@ -37,8 +36,8 @@ var _ ItemStruct = (*ItemUDP)(nil)
 func (item *ItemUDP) Reload() {
 	cptr := (*C.struct_rte_flow_item_udp)(item.createOrRet(C.sizeof_struct_rte_flow_item_udp))
 	cvtUDPHeader(&cptr.hdr, &item.Header)
-	runtime.SetFinalizer(item, nil)
-	runtime.SetFinalizer(item, (*ItemUDP).free)
+	// runtime.SetFinalizer(item, nil)
+	// runtime.SetFinalizer(item, (*ItemUDP).free)
 }
 
 func cvtUDPHeader(dst *C.struct_rte_udp_hdr, src *UDPHeader) {

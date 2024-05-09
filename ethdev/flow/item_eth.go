@@ -37,7 +37,6 @@ import "C"
 import (
 	"net"
 	"reflect"
-	"runtime"
 	"unsafe"
 )
 
@@ -95,8 +94,8 @@ func (item *ItemEth) Reload() {
 
 	beU16(item.EtherType, unsafe.Pointer(&hdr.ether_type))
 
-	runtime.SetFinalizer(item, nil)
-	runtime.SetFinalizer(item, (*ItemEth).free)
+	// runtime.SetFinalizer(item, nil)
+	// runtime.SetFinalizer(item, (*ItemEth).free)
 }
 
 func setAddr(p *C.struct_rte_ether_addr, addr net.HardwareAddr) {

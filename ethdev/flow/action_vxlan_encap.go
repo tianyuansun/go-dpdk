@@ -6,9 +6,6 @@ package flow
 #include <rte_flow.h>
 */
 import "C"
-import (
-	"runtime"
-)
 
 var _ Action = (*ActionVxlanEncap)(nil)
 
@@ -29,13 +26,13 @@ func (action *ActionVxlanEncap) Reload() {
 		{Spec: &action.Ether},
 		{Spec: &action.IPv4},
 		{Spec: &action.UDP},
-		{Spec: &action.Vxlan},
+		{Spec: &action.Vxlan, Mask: &ItemVXLAN{VNI: 0xffffffff}},
 		// {Spec: ItemTypeEnd},
 	}
 	pat := cPattern(patterns)
 	cptr.definition = &pat[0]
-	runtime.SetFinalizer(action, nil)
-	runtime.SetFinalizer(action, (*ActionVxlanEncap).free)
+	// runtime.SetFinalizer(action, nil)
+	// runtime.SetFinalizer(action, (*ActionVxlanEncap).free)
 }
 
 // Type implements Action interface.

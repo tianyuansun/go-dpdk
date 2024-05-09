@@ -61,8 +61,8 @@ import (
 	"runtime"
 	"unsafe"
 
-	"github.com/yerden/go-dpdk/common"
-	"github.com/yerden/go-dpdk/ethdev"
+	"icode.baidu.com/baidu/edge-os/xvr/common"
+	"icode.baidu.com/baidu/edge-os/xvr/ethdev"
 )
 
 // static test that ItemTypeEnd is 0.
