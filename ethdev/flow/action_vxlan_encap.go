@@ -16,7 +16,7 @@ type ActionVxlanEncap struct {
 	Ether ItemEth
 	IPv4  ItemIPv4
 	UDP   ItemUDP
-	Vxlan ItemVXLAN
+	Vxlan ItemVXLAN2
 }
 
 // Reload implements Action interface.
@@ -26,7 +26,7 @@ func (action *ActionVxlanEncap) Reload() {
 		{Spec: &action.Ether},
 		{Spec: &action.IPv4},
 		{Spec: &action.UDP},
-		{Spec: &action.Vxlan, Mask: &ItemVXLAN{VNI: 0xffffffff}},
+		{Spec: &action.Vxlan},
 		// {Spec: ItemTypeEnd},
 	}
 	pat := cPattern(patterns)
