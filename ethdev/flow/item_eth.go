@@ -14,13 +14,13 @@ enum {
 // Ethernet header fields renamed since commit: 04d43857ea3acbd4db4b28939dc2807932b85e72.
 #if RTE_VERSION < RTE_VERSION_NUM(21, 11, 0, 0)
 enum {
-	ETHER_HDR_OFF_SRC = offsetof(struct rte_ether_hdr, s_addr),
-	ETHER_HDR_OFF_DST = offsetof(struct rte_ether_hdr, d_addr),
+	ETHER_HDR_OFF_SRC = offsetof(struct rte_flow_item_eth, src),
+	ETHER_HDR_OFF_DST = offsetof(struct rte_flow_item_eth, dst),
 };
 #else
 enum {
-	ETHER_HDR_OFF_SRC = offsetof(struct rte_ether_hdr, src_addr),
-	ETHER_HDR_OFF_DST = offsetof(struct rte_ether_hdr, dst_addr),
+	ETHER_HDR_OFF_SRC = offsetof(struct rte_flow_item_eth, src),
+	ETHER_HDR_OFF_DST = offsetof(struct rte_flow_item_eth, dst),
 };
 #endif
 
@@ -80,19 +80,19 @@ func (item *ItemEth) Reload() {
 	}
 	C.set_has_vlan(cptr, C.uint32_t(u))
 
-	hdr := (*C.struct_rte_ether_hdr)(off(unsafe.Pointer(cptr), C.ITEM_ETH_OFF_HDR))
+	// hdr := (*C.struct_rte_ether_hdr)(off(unsafe.Pointer(cptr), C.ITEM_ETH_OFF_HDR))
 
 	if len(item.Src) > 0 {
-		p := off(unsafe.Pointer(hdr), C.ETHER_HDR_OFF_SRC)
+		p := off(unsafe.Pointer(cptr), C.ETHER_HDR_OFF_SRC)
 		setAddr((*C.struct_rte_ether_addr)(p), item.Src)
 	}
 
 	if len(item.Dst) > 0 {
-		p := off(unsafe.Pointer(hdr), C.ETHER_HDR_OFF_DST)
+		p := off(unsafe.Pointer(cptr), C.ETHER_HDR_OFF_DST)
 		setAddr((*C.struct_rte_ether_addr)(p), item.Dst)
 	}
 
-	beU16(item.EtherType, unsafe.Pointer(&hdr.ether_type))
+	beU16(item.EtherType, unsafe.Pointer(&cptr.type))
 
 	// runtime.SetFinalizer(item, nil)
 	// runtime.SetFinalizer(item, (*ItemEth).free)
