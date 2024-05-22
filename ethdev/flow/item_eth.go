@@ -92,7 +92,7 @@ func (item *ItemEth) Reload() {
 		setAddr((*C.struct_rte_ether_addr)(p), item.Dst)
 	}
 
-	beU16(item.EtherType, unsafe.Pointer(&cptr.type))
+	// beU16(item.EtherType, unsafe.Pointer(&cptr.ether_type))
 
 	// runtime.SetFinalizer(item, nil)
 	// runtime.SetFinalizer(item, (*ItemEth).free)
