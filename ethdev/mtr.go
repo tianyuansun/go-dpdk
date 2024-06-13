@@ -56,7 +56,7 @@ static int add_mtr_policy(uint16_t port, uint32_t policy_id) {
 
 static int add_mtr(uint16_t port, uint32_t mtr_id, uint32_t profile_id, uint32_t policy_id) {
 	int ret = 0;
-	struct rte_mtr_error, error;
+	struct rte_mtr_error error;
 	memset(&error, 0, sizeof(error));
 	struct rte_mtr_params params;
 	memset(&params, 0, sizeof(params));
