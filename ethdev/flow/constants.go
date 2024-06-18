@@ -629,6 +629,14 @@ const (
 	 * See struct rte_flow_action_set_mac.
 	 */
 	ActionTypeSetMacDst ActionType = C.RTE_FLOW_ACTION_TYPE_SET_MAC_DST
+
+	/**
+	 * The matching packets will be duplicated with specified ratio and
+	 * applied with own set of actions with a fate action.
+	 *
+	 * See struct rte_flow_action_sample.
+	 */
+	ActionTypeSample ActionType = C.RTE_FLOW_ACTION_TYPE_SAMPLE
 )
 
 // HashFunction represents hash functions for RSS.
