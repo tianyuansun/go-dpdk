@@ -10,6 +10,31 @@ package ethdev
 #include <rte_version.h>
 #include <rte_mtr.h>
 
+
+typedef struct MtrStats {
+	uint64_t Pkts;
+	uint64_t Bytes;
+	uint64_t DropPkts;
+	uint64_t DropBytes;
+} MtrStats;
+
+int query_mtr_stats(uint16_t port, uint32_t mtr_id, struct MtrStats *stats, struct rte_mtr_error *error) {
+    int ret = 0;
+	uint64_t stats_mask = 0;
+	struct rte_mtr_stats mtr_stats;
+	memset(&mtr_stats, 0, sizeof(struct rte_mtr_stats));
+	ret = rte_mtr_stats_read(port, mtr_id, &mtr_stats, &stats_mask, 0, error);
+	if (ret != 0 ) {
+	    fprintf(stderr, "failed to query_mtr_stats, mtr_id is %d, error is %s\n", mtr_id, error.message);
+		return ret;
+	}
+	stats.Pkts = mtr_stats.n_pkts[0] + mtr_stats.n_pkts[1];
+	stats.Bytes = mtr_stats.n_bytes[0] + mtr_stats.n_bytes[1];
+	stats.DropPkts = mtr_stats.n_pkts_dropped;
+	stats.DropBytes = mtr_stats.n_bytes_dropped;
+	return ret;
+}
+
 static int add_srtcm_mtr_profile(uint16_t port, uint32_t profile_id, uint64_t cir, uint64_t cbs, uint64_t ebs) {
 	int ret = 0;
 	struct rte_mtr_error error;
@@ -81,6 +106,13 @@ import (
 	"github.com/tianyuansun/go-dpdk/common"
 )
 
+type MtrStats struct {
+	Pkts      uint64
+	Bytes     uint64
+	DropPkts  uint64
+	DropBytes uint64
+}
+
 type MtrError C.struct_rte_mtr_error
 
 func (e *MtrError) Error() string {
@@ -131,4 +163,12 @@ func AddMtr(port Port, mtrID uint32, profileID, policyID uint32) error {
 
 func DeleteMtr(port Port, mtrID uint32, mtrError *MtrError) error {
 	return common.IntToErr(C.rte_mtr_destroy(C.ushort(port), C.uint32_t(mtrID), (*C.struct_rte_mtr_error)(mtrError)))
+}
+
+func UpdateMtrMeterProfile(port Port, mtrID, profileID uint32, mtrError *MtrError) error {
+	return common.IntToErr(C.rte_mtr_meter_profile_update(C.ushort(port), C.uint32_t(mtrID), C.uint32_t(profileID), (*C.struct_rte_mtr_error)(mtrError)))
+}
+
+func QueryMtrStats(port Port, mtrID uint32, stats *MtrStats, mtrError *MtrError) error {
+	return common.IntToErr(C.query_mtr_stats(C.ushort(port), C.uint32_t(mtrID), (*C.MtrStats)(unsafe.Pointer(stats)), (*C.struct_rte_mtr_error)(mtrError)))
 }
