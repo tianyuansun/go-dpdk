@@ -62,7 +62,14 @@ static int add_mtr_policy(uint16_t port, uint32_t policy_id) {
 	struct rte_mtr_meter_policy_params policy = \
     { \
 	    .actions[RTE_COLOR_GREEN] = NULL, \
-	    .actions[RTE_COLOR_YELLOW] = NULL, \
+	    .actions[RTE_COLOR_YELLOW] = (struct rte_flow_action[]) { \
+	    	{ \
+		    	.type = RTE_FLOW_ACTION_TYPE_DROP, \
+		    }, \
+		    { \
+		    	.type = RTE_FLOW_ACTION_TYPE_END, \
+		    }, \
+	    }, \
 	    .actions[RTE_COLOR_RED] = (struct rte_flow_action[]) { \
 	    	{ \
 		    	.type = RTE_FLOW_ACTION_TYPE_DROP, \
