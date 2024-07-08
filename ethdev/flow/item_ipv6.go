@@ -66,8 +66,10 @@ func cvtIPv6Header(dst *C.struct_rte_ipv6_hdr, src *IPv6Header) {
 	dst.proto = C.uint8_t(src.Proto)
 	// beU16(src.Checksum, unsafe.Pointer(&dst.hdr_checksum))
 
-	dst.src_addr = *(*C.uint8_t)(unsafe.Pointer(&src.SrcAddr[0]))
-	dst.dst_addr = *(*C.uint8_t)(unsafe.Pointer(&src.DstAddr[0]))
+	for i := 0; i < 16; i++ {
+		dst.src_addr[i] = (C.uchar)(src.SrcAddr[i])
+		dst.dst_addr[i] = (C.uchar)(src.DstAddr[i])
+	}
 }
 
 // func setIPv4HdrVersionIHL(dst *C.struct_rte_ipv6_hdr, src *IPv6Header) {
