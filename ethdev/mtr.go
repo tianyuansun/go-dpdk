@@ -28,8 +28,8 @@ int query_mtr_stats(uint16_t port, uint32_t mtr_id, struct MtrStats *stats, stru
 	    fprintf(stderr, "failed to query_mtr_stats, mtr_id is %d, error is %s\n", mtr_id, error->message);
 		return ret;
 	}
-	fprintf(stderr, "mtr stats: g pkts %d y pkts %d\n", mtr_stats.n_pkts[0], mtr_stats.n_pkts[1])
-	fprintf(stderr, "mtr stats: g bytes %d y bytes %d\n", mtr_stats.n_bytes[0], mtr_stats.n_bytes[1])
+	fprintf(stderr, "mtr stats: g pkts %d y pkts %d\n", mtr_stats.n_pkts[0], mtr_stats.n_pkts[1]);
+	fprintf(stderr, "mtr stats: g bytes %d y bytes %d\n", mtr_stats.n_bytes[0], mtr_stats.n_bytes[1]);
 	stats->Pkts = mtr_stats.n_pkts[0] + mtr_stats.n_pkts[1];
 	stats->Bytes = mtr_stats.n_bytes[0] + mtr_stats.n_bytes[1];
 	stats->DropPkts = mtr_stats.n_pkts_dropped;
