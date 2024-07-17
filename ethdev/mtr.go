@@ -23,11 +23,13 @@ int query_mtr_stats(uint16_t port, uint32_t mtr_id, struct MtrStats *stats, stru
 	uint64_t stats_mask = 1;
 	struct rte_mtr_stats mtr_stats;
 	memset(&mtr_stats, 0, sizeof(struct rte_mtr_stats));
-	ret = rte_mtr_stats_read(port, mtr_id, &mtr_stats, NULL, 0, error);
+	ret = rte_mtr_stats_read(port, mtr_id, &mtr_stats, &stats_mask, 0, error);
 	if (ret != 0 ) {
 	    fprintf(stderr, "failed to query_mtr_stats, mtr_id is %d, error is %s\n", mtr_id, error->message);
 		return ret;
 	}
+	fprintf(stderr, "mtr stats: g pkts %d y pkts %d\n", mtr_stats.n_pkts[0], mtr_stats.n_pkts[1])
+	fprintf(stderr, "mtr stats: g bytes %d y bytes %d\n", mtr_stats.n_bytes[0], mtr_stats.n_bytes[1])
 	stats->Pkts = mtr_stats.n_pkts[0] + mtr_stats.n_pkts[1];
 	stats->Bytes = mtr_stats.n_bytes[0] + mtr_stats.n_bytes[1];
 	stats->DropPkts = mtr_stats.n_pkts_dropped;
