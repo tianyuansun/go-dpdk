@@ -20,7 +20,7 @@ typedef struct MtrStats {
 
 int query_mtr_stats(uint16_t port, uint32_t mtr_id, struct MtrStats *stats, struct rte_mtr_error *error) {
     int ret = 0;
-	uint64_t stats_mask = 1;
+	uint64_t stats_mask = 0xffff;
 	struct rte_mtr_stats mtr_stats;
 	memset(&mtr_stats, 0, sizeof(struct rte_mtr_stats));
 	ret = rte_mtr_stats_read(port, mtr_id, &mtr_stats, &stats_mask, 0, error);
@@ -91,6 +91,7 @@ static int add_mtr(uint16_t port, uint32_t mtr_id, uint32_t profile_id, uint32_t
 	params.meter_policy_id = policy_id;
 	params.use_prev_mtr_color = 0;
 	params.meter_enable = 1;
+	params.stats_mask = 0xffff;
 	ret = rte_mtr_create(port, mtr_id, &params, 1, &error);
 	if (ret != 0) {
 		fprintf(stderr, "failed to add mtr, mtr id is %d, error is %s\n", mtr_id, error.message);
