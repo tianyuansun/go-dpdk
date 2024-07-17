@@ -20,7 +20,7 @@ typedef struct MtrStats {
 
 int query_mtr_stats(uint16_t port, uint32_t mtr_id, struct MtrStats *stats, struct rte_mtr_error *error) {
     int ret = 0;
-	uint64_t stats_mask = 0xffff;
+	uint64_t stats_mask = 0;
 	struct rte_mtr_stats mtr_stats;
 	memset(&mtr_stats, 0, sizeof(struct rte_mtr_stats));
 	ret = rte_mtr_stats_read(port, mtr_id, &mtr_stats, &stats_mask, 0, error);
