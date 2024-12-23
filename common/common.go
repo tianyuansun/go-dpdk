@@ -15,6 +15,7 @@ import "C"
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
 	"syscall"
@@ -24,6 +25,8 @@ import (
 var (
 	ErrNoConfig  = errors.New("Missing rte_config")
 	ErrSecondary = errors.New("Operation not allowed in secondary processes")
+	ErrMinErrno  = errors.New("Start numbering above std errno vals")
+	ErrMaxErrno  = errors.New("Max RTE error number")
 )
 
 // IntErr returns errno as error.
@@ -38,15 +41,18 @@ func errno(n int64) error {
 		n = -n
 	}
 
-	if n == int64(C.E_RTE_NO_CONFIG) {
+	switch n {
+	case int64(C.E_RTE_NO_CONFIG):
 		return ErrNoConfig
-	}
-
-	if n == int64(C.E_RTE_SECONDARY) {
+	case int64(C.E_RTE_SECONDARY):
 		return ErrSecondary
+	case int64(C.RTE_MAX_ERRNO):
+		return ErrMaxErrno
+	case int64(C.RTE_MIN_ERRNO):
+		return ErrMinErrno
+	default:
+		return fmt.Errorf("%d not match, %s", n, syscall.Errno(int(n)))
 	}
-
-	return syscall.Errno(int(n))
 }
 
 // RteErrno returns rte_errno variable.
